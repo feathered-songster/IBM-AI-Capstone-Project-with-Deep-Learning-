@@ -1,0 +1,10 @@
+jupyterlab
+tornado==6.4.2
+numpy
+pandas
+matplotlib
+scikit-learn
+seaborn
+torchinfo
+tqdm
+Pillow

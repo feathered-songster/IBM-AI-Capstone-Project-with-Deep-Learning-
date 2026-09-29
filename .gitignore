@@ -1,0 +1,16 @@
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment variables / secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+
+
+# Removed data from git - the code downloads and prepares the data
+data/
+
+# Remove trashbin directories
+.Trash-0/

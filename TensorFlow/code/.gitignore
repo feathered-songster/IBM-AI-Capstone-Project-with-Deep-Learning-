@@ -1,0 +1,3 @@
+# TensorFlow / Keras model files
+*.keras
+*.h5

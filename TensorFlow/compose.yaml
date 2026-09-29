@@ -1,0 +1,13 @@
+services:
+  tensorflow-learn:
+    build: .
+    image: tensorflow-capstone
+    container_name: tensorflow-IBM-capstone
+    ports:
+      - "8888:8888"
+    gpus: all
+    volumes:
+      - ./code:/workspace
+      - ../data:/workspace/data
+    stdin_open: true
+    tty: true
