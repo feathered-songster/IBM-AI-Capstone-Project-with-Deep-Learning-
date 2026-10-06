@@ -8,3 +8,4 @@ seaborn
 torchinfo
 tqdm
 Pillow
+onnx

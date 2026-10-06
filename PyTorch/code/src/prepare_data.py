@@ -29,16 +29,6 @@ test_dir = data_dir / "test"
 
 
 # ============================================================
-# Sanity check
-# ============================================================
-
-if abs(TRAIN_SIZE + VAL_SIZE + TEST_SIZE - 1.0) > 1e-9:
-    raise ValueError(
-        "TRAIN_SIZE + VAL_SIZE + TEST_SIZE must equal 1.0"
-    )
-
-
-# ============================================================
 # Helper function to display dataset sizes
 # ============================================================
 
@@ -76,6 +66,14 @@ def download_and_prepare_data(
     test_size=TEST_SIZE,
     random_seed=RANDOM_SEED,
 ):
+    # ============================================================
+    # Sanity check
+    # ============================================================
+
+    if abs(train_size + val_size + test_size - 1.0) > 1e-9:
+        raise ValueError(
+            "TRAIN_SIZE + VAL_SIZE + TEST_SIZE must equal 1.0"
+        )
 
     # --------------------------------------------------------
     # Check whether the dataset has already been prepared
@@ -86,11 +84,11 @@ def download_and_prepare_data(
         print(
             "Train, validation, and test directories already exist."
         )
-        print("The data is already set up.")
+        print("The geospatial data is already set up.")
 
         print_dataset_counts()
 
-        return
+        return train_dir, val_dir, test_dir
 
 
     # --------------------------------------------------------
@@ -109,7 +107,7 @@ def download_and_prepare_data(
 
     if tar_path.exists():
 
-        print(f"File already exists: {tar_path}")
+        print(f" Tar file already exists: {tar_path}")
 
     else:
 
@@ -181,10 +179,10 @@ def download_and_prepare_data(
     # Shuffle each class independently
     # --------------------------------------------------------
 
-    random.seed(random_seed)
+    rng = random.Random(random_seed)
 
-    random.shuffle(non_agri_images)
-    random.shuffle(agri_images)
+    rng.shuffle(non_agri_images)
+    rng.shuffle(agri_images)
 
 
     # --------------------------------------------------------
@@ -324,6 +322,8 @@ def download_and_prepare_data(
     print("\nDataset created successfully.")
 
     print_dataset_counts()
+
+    return train_dir, val_dir, test_dir
 
 
 # ============================================================
