@@ -1,0 +1,12 @@
+services:
+  gradio:
+    build: .
+    image: gradio-capstone
+    container_name: gradio-IBM-capstone
+    volumes:
+      - ./:/workspace
+      - ../data:/workspace/data
+    ports:
+      - "7860:7860"
+    stdin_open: true
+    tty: true
