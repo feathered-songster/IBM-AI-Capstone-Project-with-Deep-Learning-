@@ -4,7 +4,8 @@ from torch import nn
 
 num_classes = 2
 
-ibm_model = nn.Sequential(
+def create_ibm_model():
+    return nn.Sequential(
     # Conv Block 1
     nn.Conv2d(3, 32, 5, padding=2), nn.ReLU(),
     nn.MaxPool2d(2), nn.BatchNorm2d(32),
@@ -22,7 +23,8 @@ ibm_model = nn.Sequential(
     nn.Linear(2048, num_classes)
 )
 
-middle_model = nn.Sequential(
+def create_middle_model():
+    return nn.Sequential(
     # Conv Block 1: 64x64 -> 32x32
     nn.Conv2d(3, 32, kernel_size=3, padding=1),
     nn.BatchNorm2d(32),
@@ -56,7 +58,8 @@ middle_model = nn.Sequential(
     nn.Linear(128, num_classes)
 )
 
-tiny_model = nn.Sequential(
+def create_tiny_model():
+    return nn.Sequential(
     # Conv Block 1: 64x64 -> 32x32
     nn.Conv2d(3, 16, kernel_size=3, padding=1),
     nn.BatchNorm2d(16),
