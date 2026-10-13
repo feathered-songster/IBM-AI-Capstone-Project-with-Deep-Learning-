@@ -17,3 +17,5 @@ data/
 
 # Remove trashbin directories
 .Trash-0/
+
+.idea
