@@ -80,6 +80,65 @@ class AddPositionEmbedding(layers.Layer):
 # ---------------------------------------------------------
 # 3. Small Transformer encoder block
 # ---------------------------------------------------------
+# class TransformerBlock(layers.Layer):
+#     def __init__(
+#         self,
+#         embed_dim,
+#         num_heads=4,
+#         mlp_dim=128,
+#         dropout=0.1,
+#         **kwargs
+#     ):
+#         super().__init__(**kwargs)
+#
+#         self.embed_dim = embed_dim
+#         self.num_heads = num_heads
+#         self.mlp_dim = mlp_dim
+#         self.dropout = dropout
+#
+#         # IMPORTANT:
+#         # key_dim is the dimension PER attention head.
+#         self.mha = layers.MultiHeadAttention(
+#             num_heads=num_heads,
+#             key_dim=embed_dim // num_heads,
+#             dropout=dropout
+#         )
+#
+#         self.norm1 = layers.LayerNormalization(epsilon=1e-6)
+#         self.norm2 = layers.LayerNormalization(epsilon=1e-6)
+#
+#         self.mlp = tf.keras.Sequential([
+#             layers.Dense(mlp_dim, activation="gelu"),
+#             layers.Dropout(dropout),
+#             layers.Dense(embed_dim),
+#             layers.Dropout(dropout),
+#         ])
+#
+#     def call(self, x):
+#         # Self-attention + residual connection
+#         attention_output = self.mha(x, x)
+#         x = self.norm1(x + attention_output)
+#
+#         # MLP + residual connection
+#         mlp_output = self.mlp(x)
+#         x = self.norm2(x + mlp_output)
+#
+#         return x
+#
+#     def get_config(self):
+#         config = super().get_config()
+#         config.update({
+#             "embed_dim": self.embed_dim,
+#             "num_heads": self.num_heads,
+#             "mlp_dim": self.mlp_dim,
+#             "dropout": self.dropout,
+#         })
+#         return config
+
+
+# ---------------------------------------------------------
+# 3. Pre-norm Transformer encoder block
+# ---------------------------------------------------------
 class TransformerBlock(layers.Layer):
     def __init__(
         self,
@@ -96,16 +155,20 @@ class TransformerBlock(layers.Layer):
         self.mlp_dim = mlp_dim
         self.dropout = dropout
 
-        # IMPORTANT:
-        # key_dim is the dimension PER attention head.
+        # Normalize BEFORE attention
+        self.norm1 = layers.LayerNormalization(epsilon=1e-5)
+
         self.mha = layers.MultiHeadAttention(
             num_heads=num_heads,
             key_dim=embed_dim // num_heads,
             dropout=dropout
         )
 
-        self.norm1 = layers.LayerNormalization(epsilon=1e-6)
-        self.norm2 = layers.LayerNormalization(epsilon=1e-6)
+        # Explicit attention output dropout, as in the PyTorch model
+        self.attention_dropout = layers.Dropout(dropout)
+
+        # Normalize BEFORE the MLP
+        self.norm2 = layers.LayerNormalization(epsilon=1e-5)
 
         self.mlp = tf.keras.Sequential([
             layers.Dense(mlp_dim, activation="gelu"),
@@ -114,14 +177,34 @@ class TransformerBlock(layers.Layer):
             layers.Dropout(dropout),
         ])
 
-    def call(self, x):
-        # Self-attention + residual connection
-        attention_output = self.mha(x, x)
-        x = self.norm1(x + attention_output)
+    def call(self, x, training=None):
 
-        # MLP + residual connection
-        mlp_output = self.mlp(x)
-        x = self.norm2(x + mlp_output)
+        # ---- Pre-norm self-attention ----
+        residual = x
+
+        x_norm = self.norm1(x)
+        attention_output = self.mha(
+            x_norm,
+            x_norm,
+            training=training
+        )
+        attention_output = self.attention_dropout(
+            attention_output,
+            training=training
+        )
+
+        x = residual + attention_output
+
+        # ---- Pre-norm feed-forward network ----
+        residual = x
+
+        x_norm = self.norm2(x)
+        mlp_output = self.mlp(
+            x_norm,
+            training=training
+        )
+
+        x = residual + mlp_output
 
         return x
 
@@ -192,97 +275,3 @@ def build_small_vit(
     return Model(inputs, outputs, name="small_vit")
 
 
-def build_hybrid_model(pretrained_cnn_location):
-    # ---------------------------------------------------------
-    # 1. Load pretrained CNN
-    # ---------------------------------------------------------
-
-    cnn = tf.keras.models.load_model(pretrained_cnn_location)
-
-    # Freeze the pretrained CNN
-    cnn.trainable = False
-
-    # ---------------------------------------------------------
-    # 2. Create a new explicit input
-    # ---------------------------------------------------------
-
-    inputs = layers.Input(
-        shape=(IMG_SIZE, IMG_SIZE, CHANNELS)
-    )
-
-    # ---------------------------------------------------------
-    # 3. Pass the input through the pretrained CNN
-    # ---------------------------------------------------------
-
-    x = cnn(inputs)
-
-    # ---------------------------------------------------------
-    # 4. We DON'T want the CNN's final classifier.
-    #
-    # So instead, create a feature-extractor model
-    # from the CNN's input to max_pooling2d_7.
-    # ---------------------------------------------------------
-
-    feature_extractor = Model(
-        inputs=cnn.layers[0].input,
-        outputs=cnn.get_layer("max_pooling2d_7").output
-    )
-
-    feature_extractor.trainable = False
-
-    x = feature_extractor(inputs)
-
-    # ---------------------------------------------------------
-    # 5. Convert 4x4 feature map into 16 tokens
-    #
-    # (batch, 4, 4, 128)
-    #       ↓
-    # (batch, 16, 128)
-    # ---------------------------------------------------------
-
-    x = layers.Reshape((16, 128))(x)
-
-    # ---------------------------------------------------------
-    # 6. Positional embedding
-    # ---------------------------------------------------------
-
-    x = AddPositionEmbedding(
-        num_patches=16,
-        embed_dim=128
-    )(x)
-
-    # ---------------------------------------------------------
-    # 7. Transformer block
-    # ---------------------------------------------------------
-
-    x = TransformerBlock(
-        embed_dim=128,
-        num_heads=4,
-        mlp_dim=256,
-        dropout=0.1
-    )(x)
-
-    # ---------------------------------------------------------
-    # 8. Classification head
-    # ---------------------------------------------------------
-
-    x = layers.GlobalAveragePooling1D()(x)
-
-    x = layers.Dropout(0.1)(x)
-
-    outputs = layers.Dense(
-        2,
-        activation="softmax"
-    )(x)
-
-    # ---------------------------------------------------------
-    # 9. Build hybrid model
-    # ---------------------------------------------------------
-
-    hybrid_model = Model(
-        inputs=inputs,
-        outputs=outputs,
-        name="cnn_vit_hybrid"
-    )
-
-    return hybrid_model
