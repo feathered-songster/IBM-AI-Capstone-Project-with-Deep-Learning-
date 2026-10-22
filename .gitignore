@@ -8,8 +8,8 @@
 __pycache__/
 *.py[cod]
 
-# Model files
-*.onnx
+# Model files - we will keep them in this case, so that the Gradio app can be run as demo without retraining the models
+# *.onnx
 
 
 # Removed data from git - the code downloads and prepares the data

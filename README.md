@@ -5,7 +5,9 @@ This repository contains the capstone project for the [IBM Deep Learning with Py
 The project demonstrates the development, evaluation, export, and serving of deep learning image-classification models using **PyTorch**, **TensorFlow/Keras**, **ONNX**, and **Gradio**.
 It explores several model architectures: **CNNs, Vision Transformers, and a hybrid CNN-Transformer model** and also demonstrates **transfer learning**, using a pre-trained CNN as part of the hybrid architecture with its learned layers frozen.
 
-The trained models are exported to **ONNX** and served through a separate **Gradio** application using ONNX Runtime.
+Beyond the scope of the original capstone project, for demonstration the trained models are exported to **ONNX** and served through a separate **Gradio** application using ONNX Runtime.
+
+Note also that the classification task is too easy for the sizes of the original models suggested by IBM, therefore this demo features smaller models trained on the same data.
 
 ## Project structure
 
@@ -22,7 +24,7 @@ The project is organized into three independent Docker environments:
 * **PyTorch** — model development, training and evaluation using PyTorch and JupyterLab.
 * **TensorFlow** — model development, training and evaluation using TensorFlow/Keras and JupyterLab.
 * **GradioApp** — inference application using ONNX Runtime and Gradio.
-* **data** — common dataset used by all three environments.
+* **data** — common data used by all three environments.
 
 Each application has its own `Dockerfile` and Docker Compose configuration.
 

@@ -1,3 +1,4 @@
-# TensorFlow / Keras model files
+# TensorFlow / Keras and onnx model files
 *.keras
 *.h5
+*.onnx
